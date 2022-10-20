@@ -6,13 +6,13 @@ RabbitMQ nodes are identified by node names. A node name consists of two parts, 
 
 To ensure our rabbitmq hosts can resolve DNS names of other rabbitmq hosts in a cluster, we're going to create a custom docker network named `rabbits` that all our hosts will live in.
 
-```sh
+```bash
 docker network create rabbits
 ```
 
 Now let's create our first container
 
-```sh
+```bash
 docker run -d --rm --net rabbits --hostname rabbit-1 --name rabbit-1 rabbitmq:3.8
 ```
 
@@ -20,13 +20,13 @@ In a RabbitMQ cluster, the Erlang Cookie is used for the CLI to authenticate wit
 
 To get the Erlan Cookie from a running RabbitMQ docker container:
 
-```sh
+```bash
 docker exec -it rabbit-1 cat /var/lib/rabbitmq/.erlang.cookie
 ```
 
 To clean up:
 
-```sh
+```bash
 docker stop rabbit-1
 ```
 
@@ -34,7 +34,18 @@ docker stop rabbit-1
 
 ## Creating Nodes
 
-Let's create 3 nodes to use in our RabbitMQ cluster. Here's an explanation of the options
+Let's create 3 nodes to use in our RabbitMQ cluster.
+
+```bash
+for x in {1..3}; do
+	docker run -d --rm --net rabbits \
+    --hostname rabbit-"$x" --name rabbit-"$x" \
+    -p 808"$x":15672 -e RABBITMQ_ERLANG_COOKIE=BONNKACVCFMBMHXDEOFA \
+    rabbitmq:3.8-management
+done
+```
+
+Here's an explanation of the options
 
 * `for x in {1..3}` - Loops 3 times, setting `"$x"` to 1, 2, then 3.
 * `-d` - Run docker in detached mode
@@ -44,12 +55,6 @@ Let's create 3 nodes to use in our RabbitMQ cluster. Here's an explanation of th
 * `-p 808"$x":15672` - Expose the management port to access the web interface.
 * `-e RABBITMQ_ERLANG_COOKIE=BONNKACVCFMBMHXDEOFA` - Specify that every node use the same erlang cookie, this is important for the nodes to authenticate with each other.
 * `rabbitmq:3.8-management` - The docker image to use. In this case we want rabbitmq with the management web interface installed and running.
-
-```sh
-for x in {1..3}; do
-	docker run -d --rm --net rabbits --hostname rabbit-"$x" --name rabbit-"$x" -p 808"$x":15672 -e RABBITMQ_ERLANG_COOKIE=BONNKACVCFMBMHXDEOFA rabbitmq:3.8-management
-done
-```
 
 Now we can log into the management web portal for all three using the default username `guest` and password `guest`.
 
@@ -63,7 +68,7 @@ We can see on the overview page that they're all running single node instances a
 
 We can also confirm this from the command line by running the `rabbitmqctl` command:
 
-```sh
+```bash
 docker exec -it rabbit-1 rabbitmqctl cluster_status
 ```
 
@@ -73,7 +78,7 @@ If any existing nodes need to join a cluster, they will lose all the data they h
 
 To add nodes 2 and 3 to the node 1 cluster:
 
-```sh
+```bash
 for x in 2 3; do
   docker exec -it rabbit-"$x" rabbitmqctl stop_app
   docker exec -it rabbit-"$x" rabbitmqctl reset
@@ -83,3 +88,29 @@ for x in 2 3; do
 done
 ```
 
+To clean up:
+
+```bash
+docker stop rabbit-{1..3}
+```
+
+# Automatic RabbitMQ Clustering
+
+In order to automatically cluster our RabbitMQ nodes, we need to start up our containers slightly differently:
+
+```bash
+for x in {1..3}; do
+  docker run -d --rm --net rabbits \
+    --hostname rabbit-"$x" \
+    --name rabbit-"$x" \
+    -p 808"$x":15672 \
+    -v "$(pwd)"/config/rabbit-"$x"/:/config/ \
+    -e RABBITMQ_CONFIG_FILE=/config/rabbitmq \
+    -e RABBITMQ_ERLANG_COOKIE=BONNKACVCFMBMHXDEOFA \
+    rabbitmq:3.8-management
+done
+```
+
+The only difference with this version of the command is that it mounts the `./config/rabbit-"$x"` config folder and points RabbitMQ to it to automate clustering.
+
+After running the command above, you should see all the nodes start up and cluster automatically.
