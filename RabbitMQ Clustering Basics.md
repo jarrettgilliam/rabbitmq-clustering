@@ -30,9 +30,9 @@ To clean up:
 docker stop rabbit-1
 ```
 
-# Manual RabbitMQ Clustering
+## Manual RabbitMQ Clustering
 
-## Creating Nodes
+### Creating Nodes
 
 Let's create 3 nodes to use in our RabbitMQ cluster.
 
@@ -64,7 +64,7 @@ Now we can log into the management web portal for all three using the default us
 
 We can see on the overview page that they're all running single node instances and aren't clustered yet.
 
-![image-20221020095529657](README.assets/image-20221020095529657.png)
+![image-20221020095529657](assets/image-20221020095529657.png)
 
 We can also confirm this from the command line by running the `rabbitmqctl` command:
 
@@ -72,7 +72,7 @@ We can also confirm this from the command line by running the `rabbitmqctl` comm
 docker exec -it rabbit-1 rabbitmqctl cluster_status
 ```
 
-## Joining Nodes
+### Joining Nodes
 
 If any existing nodes need to join a cluster, they will lose all the data they have stored. So we need to run the reset command on these nodes first. In our examples, nodes 2 and 3 will be joing node 1's cluster, so they will be reset.
 
@@ -94,7 +94,7 @@ To clean up:
 docker stop rabbit-{1..3}
 ```
 
-# Automatic RabbitMQ Clustering
+## Automatic RabbitMQ Clustering
 
 In order to automatically cluster our RabbitMQ nodes, we need to start up our containers slightly differently:
 

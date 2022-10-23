@@ -1,0 +1,16 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+    name: test-rabbitmq-cluster
+spec:
+  image: rabbitmq:3.10-management
+  replicas: 3 # 1 by default
+  persistence:
+    storage: 1Gi
+  resources:
+    requests:
+      cpu: 1
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 1Gi
